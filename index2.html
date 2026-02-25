@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>For You - VIP HandCare</title>
+    <style>
+        /* ================= CSS 样式区 ================= */
+        :root {
+            --bg-color: #2c3e50;
+            --envelope-color: #e74c3c;
+            --envelope-inside: #c0392b;
+            --card-bg: #fdfbf7;
+            --gold-accent: #d4af37;
+            --text-color: #333;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--bg-color);
+            font-family: 'PingFang SC', 'Microsoft YaHei', 'Georgia', serif;
+            overflow: hidden;
+        }
+
+        .container {
+            perspective: 1200px; /* 增强3D透视感 */
+        }
+
+        /* 1. 容器尺寸加大，给文字更多空间 */
+        .envelope-wrapper {
+            position: relative;
+            width: 340px;  /* 加宽 */
+            height: 240px; /* 加高 */
+            cursor: pointer;
+            transition: transform 0.5s;
+        }
+
+        .envelope-wrapper:hover { transform: translateY(-5px); }
+
+        .envelope {
+            position: relative;
+            width: 100%; height: 100%;
+            transform-style: preserve-3d;
+        }
+
+        /* 信封各部分 */
+        .back {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--envelope-inside);
+            border-radius: 5px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            z-index: 1;
+        }
+
+        .front.pocket {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--envelope-color);
+            clip-path: polygon(0 0, 50% 50%, 100% 0, 100% 100%, 0 100%);
+            z-index: 3; border-radius: 0 0 5px 5px;
+        }
+
+        .front.flap {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--envelope-color);
+            clip-path: polygon(0 0, 100% 0, 50% 50%);
+            transform-origin: top;
+            transition: transform 0.6s ease-in-out, z-index 0.2s;
+            z-index: 4; border-radius: 5px 5px 0 0;
+        }
+        
+        /* 调整印章位置 */
+        .front.flap::after {
+            content: "❤"; position: absolute; top: 35%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px; height: 40px;
+            background-color: #e67e22; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            color: #fff; font-size: 20px;
+            border: 2px dashed rgba(255,255,255,0.3);
+        }
+
+        /* ================= 核心升级：翻转卡片结构 ================= */
+        .letter {
+            position: absolute;
+            bottom: 0; left: 50%;
+            transform: translateX(-50%);
+            width: 90%; height: 92%; /* 卡片稍微做大一点 */
+            z-index: 2;
+            transition: transform 0.6s ease-in-out 0.4s, z-index 0.1s;
+        }
+
+        /* 用于翻转的内部容器 */
+        .card-inner {
+            position: relative;
+            width: 100%; height: 100%;
+            text-align: center;
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* 更有弹性的翻转动画 */
+            transform-style: preserve-3d;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        /* 正反面公共样式 */
+        .card-face {
+            position: absolute;
+            width: 100%; height: 100%;
+            -webkit-backface-visibility: hidden; /* Safari */
+            backface-visibility: hidden; /* 关键：隐藏背面 */
+            background: var(--card-bg);
+            border: 3px double var(--gold-accent);
+            border-radius: 8px;
+            padding: 15px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+
+        /* === 卡片正面 === */
+        .card-front {
+            /* 默认显示 */
+        }
+        
+        .card-front h3 { color: var(--gold-accent); font-size: 1.1rem; margin-bottom: 5px; }
+        .card-front .main-info { font-size: 0.85rem; color: #555; line-height: 1.6; }
+        .qr-code { font-size: 24px; margin: 8px 0; animation: heartbeat 1.5s infinite; }
+        
+        /* 翻转链接 */
+        .flip-link {
+            font-size: 0.75rem; color: var(--envelope-color);
+            text-decoration: underline; cursor: pointer; margin-top: 10px;
+        }
+
+        /* === 卡片背面 (详细条款) === */
+        .card-back {
+            transform: rotateY(180deg); /* 初始就背对屏幕 */
+            font-size: 0.7rem; /* 字体小一点放更多内容 */
+            color: #444;
+            align-items: flex-start; /* 左对齐 */
+            text-align: left;
+            padding: 15px 20px;
+            overflow-y: auto; /* 万一内容太多，允许滚动 */
+        }
+
+        .card-back h4 {
+            width: 100%; text-align: center; color: var(--gold-accent);
+            margin-bottom: 8px; border-bottom: 1px dashed #ddd; padding-bottom: 5px;
+        }
+
+        .card-back ul { list-style: none; width: 100%; }
+        .card-back li { margin-bottom: 6px; line-height: 1.4; }
+        .card-back li strong { color: var(--text-color); }
+        
+        .back-btn {
+            align-self: center; margin-top: auto; /* 推到底部 */
+            font-size: 0.7rem; color: #999; cursor: pointer; text-decoration: none;
+        }
+
+        /* === 按钮样式 === */
+        button#redeem-btn {
+            background-color: var(--gold-accent); color: white;
+            border: none; padding: 6px 16px; border-radius: 20px;
+            cursor: pointer; font-size: 0.85rem; margin-top: 5px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 80%;
+        }
+        button#redeem-btn:hover { background-color: #b7952b; }
+        button.disabled { background-color: #bdc3c7; pointer-events: none; }
+        
+        @keyframes heartbeat {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        /* ================= 交互状态类 ================= */
+        /* 1. 信封打开状态 */
+        .envelope-wrapper.open .front.flap {
+            transform: rotateX(180deg); z-index: 1;
+        }
+        .envelope-wrapper.open .letter {
+            transform: translateX(-50%) translateY(-140px); /* 向上滑出更多一点 */
+            z-index: 5; transition-delay: 0.5s;
+        }
+
+        /* 2. 卡片翻转状态 */
+        .letter.is-flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="envelope-wrapper" id="envelope-wrapper">
+        <div class="envelope">
+            <div class="front flap"></div>
+            <div class="front pocket"></div>
+            
+            <div class="letter" id="letter">
+                <div class="card-inner">
+                    <div class="card-face card-front">
+                        <h3>👑 专属手部护理券</h3>
+                        <div class="main-info">
+                            <p>有效期：2027年2月14日</p>
+                            <p>周期：1次/月</p>
+                        </div>
+                        <div class="qr-code">💖</div>
+                        
+                        <button id="redeem-btn">立即预约</button>
+                        <p style="font-size: 0.6rem; color: #999; margin-top: 5px;">点击复制口令并跳转微信</p>
+                        
+                        <div class="flip-link" id="show-details">查看服务详情 & 规则 &gt;</div>
+                    </div>
+
+                    <div class="card-face card-back">
+                        <h4>📜 服务条款 (T&C)</h4>
+                        <ul>
+                            <li><strong>服务内容：</strong>专业手部护理（按摩/去角质/保湿），时长≥30分钟。</li>
+                            <li><strong>预约规则：</strong>需心情愉悦时兑换，提前1天预约。</li>
+                            <li><strong>特殊条款：</strong>如遇技师心情不佳，请投喂零食以重启服务 🍬。</li>
+                            <li><strong>服务商：</strong>小叶宝 (VIP Only)</li>
+                        </ul>
+                        <div class="flip-link back-btn" id="show-front">&lt; 返回正面</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="back"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const envelopeWrapper = document.getElementById('envelope-wrapper');
+        const letter = document.getElementById('letter');
+        const btn = document.getElementById('redeem-btn');
+        const showDetailsBtn = document.getElementById('show-details');
+        const showFrontBtn = document.getElementById('show-front');
+
+        // 1. 信封开合
+        envelopeWrapper.addEventListener('click', (e) => {
+            // 如果点击的是卡片内部的任何交互元素，不要控制信封开关
+            if (e.target.closest('.letter')) return;
+            envelopeWrapper.classList.toggle('open');
+        });
+
+        // 2. 卡片翻转逻辑
+        // 注意：翻转只改变 .letter 的 class，不影响信封
+        showDetailsBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // 防止冒泡触发信封关闭
+            letter.classList.add('is-flipped');
+        });
+
+        showFrontBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            letter.classList.remove('is-flipped');
+        });
+
+        // 3. 打卡逻辑 (保持不变)
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        const lastRedeemed = localStorage.getItem('handcare_last_redeemed');
+
+        if (lastRedeemed === currentMonth) {
+            disableButton();
+        }
+
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation(); // 防止冒泡
+            const secretCode = `申请兑换本月手部护理 [Token:${Date.now()}]`;
+            
+            navigator.clipboard.writeText(secretCode).then(() => {
+                alert("✅ 预约口令已复制！\n即将跳转微信，请粘贴发送给我~");
+                window.location.href = "weixin://";
+                localStorage.setItem('handcare_last_redeemed', currentMonth);
+                disableButton();
+            }).catch(err => {
+                console.error(err);
+                alert("复制失败，请手动截图~");
+            });
+        });
+
+        function disableButton() {
+            btn.textContent = "本月已核销";
+            btn.classList.add('disabled');
+        }
+    });
+</script>
+
+</body>
+</html>
